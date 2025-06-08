@@ -28,4 +28,4 @@ override.tf.json
 .terraform.lock.hcl
 terraform.tfvars
 
-packer-node-nginx.json
+packer/packer.auto.pkrvars.json

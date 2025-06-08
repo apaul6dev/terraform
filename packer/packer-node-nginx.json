@@ -1,0 +1,35 @@
+{
+    "variables": {
+        "aws_access_key_id": "{{user `aws_access_key`}}",
+        "aws_secret_access_key": "{{user `aws_secret_key`}}",
+        "aws_region": "{{user `aws_region`}}"
+    },
+    "builders": [
+        {
+            "type": "amazon-ebs",
+            "access_key": "{{user `aws_access_key`}}",
+            "secret_key": "{{user `aws_secret_key`}}",
+            "region": "{{user `aws_region`}}",
+            "source_ami_filter": {
+                "filters": {
+                    "name": "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*",
+                    "virtualization-type": "hvm",
+                    "root-device-type": "ebs"
+                },
+                "owners": [
+                    "099720109477"
+                ],
+                "most_recent": true
+            },
+            "instance_type": "t2.micro",
+            "ssh_username": "ubuntu",
+            "ami_name": "ami-nodenginx-{{timestamp}}"
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "script": "scripts/backend.sh"
+        }
+    ]
+}
