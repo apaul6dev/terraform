@@ -3,3 +3,6 @@ terraform init
 terraform plan
 terraform apply 
 terraform destroy
+
+
+packer build -var-file="packer.auto.pkrvars.json" packer-node-nginx.json
