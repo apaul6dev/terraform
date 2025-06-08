@@ -17,6 +17,22 @@ locals {
   extra_tag = "extra-tag"
 }
 
+# Data source to get latest Packer-generated AMI
+data "aws_ami" "packer" {
+  most_recent = true
+  owners      = ["self"]
+
+  filter {
+    name   = "name"
+    values = ["ami-nodenginx*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
 # VPC
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
@@ -94,9 +110,9 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
-# Instancia EC2
+# Instancia EC2 usando la AMI personalizada de Packer
 resource "aws_instance" "unir_tests" {
-  ami                    = "ami-0a7d80731ae1b2435" # Ubuntu 22.04 LTS (us-east-1)
+  ami                    = data.aws_ami.packer.id
   instance_type          = "t2.micro"
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]

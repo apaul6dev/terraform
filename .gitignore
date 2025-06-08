@@ -27,3 +27,5 @@ override.tf.json
 # Local files
 .terraform.lock.hcl
 terraform.tfvars
+
+packer-node-nginx.json
