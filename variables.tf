@@ -9,3 +9,9 @@ variable "secret_key" {
   type        = string
   sensitive   = true
 }
+
+variable "secret_region" {
+  description = "secret_region"
+  type        = string
+  sensitive   = true
+}
