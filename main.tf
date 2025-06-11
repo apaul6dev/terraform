@@ -129,15 +129,9 @@ resource "aws_security_group" "frontend_sg" {
 resource "aws_security_group" "backend_sg" {
   name        = "backend-sg"
   vpc_id      = aws_vpc.main.id
-  description = "Allow HTTP from frontends"
+  description = "Allow HTTP from frontend and ALB"
 
-  ingress {
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    security_groups = [aws_security_group.frontend_sg.id]
-  }
-
+  # Permite tráfico del frontend directamente
   ingress {
     from_port       = 8081
     to_port         = 8081
@@ -145,13 +139,23 @@ resource "aws_security_group" "backend_sg" {
     security_groups = [aws_security_group.frontend_sg.id]
   }
 
+  # ❗ Permite tráfico desde el ALB del backend (REGLA NUEVA)
   ingress {
-    from_port       = 22
-    to_port         = 22
+    from_port       = 8081
+    to_port         = 8081
     protocol        = "tcp"
-    security_groups = [aws_security_group.frontend_sg.id]
+    security_groups = [aws_security_group.backend_alb_sg.id]
   }
 
+  # SSH opcional
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Salida
   egress {
     from_port   = 0
     to_port     = 0
@@ -163,6 +167,7 @@ resource "aws_security_group" "backend_sg" {
     Name = "backend-sg"
   }
 }
+
 
 # Instancias EC2
 resource "aws_instance" "frontend" {
@@ -236,32 +241,39 @@ resource "aws_lb" "backend_alb" {
     aws_subnet.backend_subnet_1.id,
     aws_subnet.backend_subnet_2.id
   ]
-  security_groups = [aws_security_group.backend_sg.id]
+  security_groups = [aws_security_group.backend_alb_sg.id]
 }
 
-# Target group y listener para puerto 80
-resource "aws_lb_target_group" "backend_tg" {
-  name     = "backend-tg"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
-}
 
-resource "aws_lb_listener" "backend_listener" {
-  load_balancer_arn = aws_lb.backend_alb.arn
-  port              = 80
-  protocol          = "HTTP"
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.backend_tg.arn
+resource "aws_security_group" "backend_alb_sg" {
+  name        = "backend-alb-sg"
+  description = "Allow frontend to access backend ALB"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.frontend_sg.id]
   }
-}
 
-resource "aws_lb_target_group_attachment" "backend_targets" {
-  count            = 2
-  target_group_arn = aws_lb_target_group.backend_tg.arn
-  target_id        = aws_instance.backend[count.index].id
-  port             = 80
+  ingress {
+    from_port       = 8081
+    to_port         = 8081
+    protocol        = "tcp"
+    security_groups = [aws_security_group.frontend_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "backend-alb-sg"
+  }
 }
 
 # Target group y listener para puerto 8081
@@ -270,6 +282,17 @@ resource "aws_lb_target_group" "backend_tg_8081" {
   port     = 8081
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
+
+  health_check {
+    path                = "/"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 5
+    interval            = 10
+    matcher             = "200-299"
+  }
 }
 
 resource "aws_lb_listener" "backend_listener_8081" {
