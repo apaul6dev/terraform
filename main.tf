@@ -138,6 +138,20 @@ resource "aws_security_group" "backend_sg" {
     security_groups = [aws_security_group.frontend_sg.id]
   }
 
+  ingress {
+    from_port       = 8081
+    to_port         = 8081
+    protocol        = "tcp"
+    security_groups = [aws_security_group.frontend_sg.id]
+  }
+
+  ingress {
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = [aws_security_group.frontend_sg.id]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -150,14 +164,14 @@ resource "aws_security_group" "backend_sg" {
   }
 }
 
-# Instancias EC2 distribuidas
+# Instancias EC2
 resource "aws_instance" "frontend" {
   count                  = 2
   ami                    = "ami-0a7d80731ae1b2435"
   instance_type          = "t2.micro"
   subnet_id              = element([aws_subnet.frontend_subnet_1.id, aws_subnet.frontend_subnet_2.id], count.index)
   vpc_security_group_ids = [aws_security_group.frontend_sg.id]
-
+  key_name               = var.key_name
   tags = {
     Name     = "frontend-${count.index}"
     ExtraTag = local.extra_tag
@@ -166,18 +180,18 @@ resource "aws_instance" "frontend" {
 
 resource "aws_instance" "backend" {
   count                  = 2
-  ami                    = "ami-0a7d80731ae1b2435"
+  ami                    = "ami-03fa0cd348172c8fb"
   instance_type          = "t2.micro"
   subnet_id              = element([aws_subnet.backend_subnet_1.id, aws_subnet.backend_subnet_2.id], count.index)
   vpc_security_group_ids = [aws_security_group.backend_sg.id]
-
+  key_name               = var.key_name
   tags = {
     Name     = "backend-${count.index}"
     ExtraTag = local.extra_tag
   }
 }
 
-# Application Load Balancer Frontend
+# Frontend ALB
 resource "aws_lb" "frontend_alb" {
   name               = "frontend-alb"
   internal           = false
@@ -213,7 +227,7 @@ resource "aws_lb_target_group_attachment" "frontend_targets" {
   port             = 80
 }
 
-# Application Load Balancer Backend
+# Backend ALB
 resource "aws_lb" "backend_alb" {
   name               = "backend-alb"
   internal           = true
@@ -225,6 +239,7 @@ resource "aws_lb" "backend_alb" {
   security_groups = [aws_security_group.backend_sg.id]
 }
 
+# Target group y listener para puerto 80
 resource "aws_lb_target_group" "backend_tg" {
   name     = "backend-tg"
   port     = 80
@@ -247,4 +262,29 @@ resource "aws_lb_target_group_attachment" "backend_targets" {
   target_group_arn = aws_lb_target_group.backend_tg.arn
   target_id        = aws_instance.backend[count.index].id
   port             = 80
+}
+
+# Target group y listener para puerto 8081
+resource "aws_lb_target_group" "backend_tg_8081" {
+  name     = "backend-tg-8081"
+  port     = 8081
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.main.id
+}
+
+resource "aws_lb_listener" "backend_listener_8081" {
+  load_balancer_arn = aws_lb.backend_alb.arn
+  port              = 8081
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend_tg_8081.arn
+  }
+}
+
+resource "aws_lb_target_group_attachment" "backend_targets_8081" {
+  count            = 2
+  target_group_arn = aws_lb_target_group.backend_tg_8081.arn
+  target_id        = aws_instance.backend[count.index].id
+  port             = 8081
 }

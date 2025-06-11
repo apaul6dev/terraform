@@ -15,3 +15,8 @@ variable "secret_region" {
   type        = string
   sensitive   = true
 }
+
+variable "key_name" {
+  description = "Nombre del par de claves SSH en AWS"
+  type        = string
+}
