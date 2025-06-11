@@ -139,7 +139,7 @@ resource "aws_security_group" "backend_sg" {
     security_groups = [aws_security_group.frontend_sg.id]
   }
 
-  # ❗ Permite tráfico desde el ALB del backend (REGLA NUEVA)
+  # Permite tráfico desde el ALB del backend
   ingress {
     from_port       = 8081
     to_port         = 8081
