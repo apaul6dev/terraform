@@ -251,13 +251,6 @@ resource "aws_security_group" "backend_alb_sg" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    security_groups = [aws_security_group.frontend_sg.id]
-  }
-
-  ingress {
     from_port       = 8081
     to_port         = 8081
     protocol        = "tcp"
