@@ -8,8 +8,12 @@ export DEBIAN_FRONTEND=noninteractive
 FRONTEND_REPO="https://github.com/apaul6dev/frontend-mean.git"
 FRONTEND_DIR="/var/www/frontend-mean"
 NODE_VERSION="20"
-BACKEND_ALB_DNS="internal-backend-alb-820469654.us-east-1.elb.amazonaws.com"
-BACKEND_PORT="8000"
+BACKEND_PORT="8081"
+
+# Evitar prompts de reinicio de servicios
+echo 'NEEDRESTART_MODE=a' | sudo tee -a /etc/environment
+sudo sed -i 's/^#\$nrconf{restart} =.*/\$nrconf{restart} = '\''a'\'';/' /etc/needrestart/needrestart.conf || true
+
 
 # =============================
 # Instalar dependencias
@@ -31,11 +35,9 @@ sudo npm install
 # =============================
 # Reemplazar URL del backend
 # =============================
-echo "🔧 Configurando endpoint del backend en Angular..."
-sudo sed -i "s|http://localhost:8000/api|http://${BACKEND_ALB_DNS}:${BACKEND_PORT}/api|g" src/environments/environment.ts
-sudo sed -i "s|http://localhost:8000/api|http://${BACKEND_ALB_DNS}:${BACKEND_PORT}/api|g" src/environments/environment.prod.ts
 
 echo "🏗️ Construyendo frontend en modo producción..."
+export CI=true
 sudo ng build --configuration production
 
 # =============================
@@ -47,8 +49,8 @@ server {
   listen 80;
   server_name localhost;
 
-  root ${FRONTEND_DIR}/dist/frontend;
-  index index.html;
+  root /var/www/frontend-mean/dist/frontend/browser;
+  index index.html index.csr.html;
 
   location / {
     try_files \$uri \$uri/ /index.html;
