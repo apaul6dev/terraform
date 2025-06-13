@@ -27,3 +27,10 @@
 cd packer                         
 packer build -var-file="packer.auto.pkrvars.json" packer-node-backend.json 
 packer build -var-file="packer.auto.pkrvars.json" packer-node-front.json 
+
+### 1. Ejecutar terraform
+
+terraform init
+terraform plan
+terraform apply
+terraform destroy
