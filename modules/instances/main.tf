@@ -22,7 +22,7 @@ resource "aws_instance" "frontend" {
 
 resource "aws_instance" "backend" {
   count                  = 2
-  ami                    = "ami-03fa0cd348172c8fb"
+  ami                    = "ami-028611a782fe6bbf3"
   instance_type          = "t2.micro"
   subnet_id              = element(var.subnets_backend, count.index)
   vpc_security_group_ids = [var.sg_backend]

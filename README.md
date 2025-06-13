@@ -25,4 +25,5 @@
 ### 1. Crear imagen con Packer
 
 cd packer                         
-packer build -var-file="packer.auto.pkrvars.json" packer-node-nginx.json
+packer build -var-file="packer.auto.pkrvars.json" packer-node-backend.json 
+packer build -var-file="packer.auto.pkrvars.json" packer-node-front.json 
